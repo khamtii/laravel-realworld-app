@@ -1,0 +1,84 @@
+- hosts: all
+  become: true
+  become_user: root
+  gather_facts: false
+  tasks:
+    - include_role:
+        name: setup
+
+- hosts: all
+  become: true
+  become_user: root
+  gather_facts: false
+  tasks:
+    - include_role:
+        name: php
+
+
+- hosts: all
+  become: true
+  become_user: root
+  gather_facts: false
+  tasks:
+    - include_role:
+        name: apache
+
+- hosts: all
+  become: true
+  become_user: root
+  gather_facts: false
+  tasks:
+    - include_role:
+        name: mysql
+        
+- hosts: all
+  become: true
+  become_user: root
+  gather_facts: false
+  tasks:
+    - name: Add new user to create composer project
+      ansible.builtin.user:
+        name: not_root
+        comment: I am not the root user
+        group: www-data
+
+- hosts: all
+  become: true
+  become_user: not_root
+  gather_facts: false
+  tasks:
+    - name: Creating Project with Composer
+      community.general.composer:
+        command: create-project
+        working_dir: /var/www/ktaltproject
+        prefer_dist: true
+
+
+- hosts: all
+  become: true
+  become_user: root
+  gather_facts: false
+  tasks:
+    - name: Migrating Database
+      shell: cd /var/www/ktaltproject.me/ && php artisan migrate --seed --force && cd
+    
+    
+    - include_role:
+        name: ssl
+
+- hosts: all
+  become: true
+  become_user: root
+  gather_facts: false
+  tasks:
+    - name: Moving script to remote server
+      ansible.builtin.copy:
+        src: /home/vagrant/altschool-cloud-exercises/Altschool-Exam/pgsql.sh
+        dest: /root/pgsql.sh
+        remote_src: no
+
+    - name: making the file executable
+      shell: sudo chmod +x pqsql.sh
+
+    - name: Installing and setting up PostgreSQL with a bash script
+      ansible.builtin.script: pgsql.sh
